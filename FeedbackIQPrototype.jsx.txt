@@ -1,0 +1,226 @@
+import React, { useState } from "react";
+import PropTypes from "prop-types";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { LineChart, Line, PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+
+const COLORS = ["#108981", "#F59E0B", "#EF4444", "#2563EB"];
+
+const initialSentimentData = [
+  { name: "Mon", sentiment: 60 },
+  { name: "Tue", sentiment: 72 },
+  { name: "Wed", sentiment: 65 },
+  { name: "Thu", sentiment: 78 },
+  { name: "Fri", sentiment: 85 },
+];
+
+const initialEmotionData = [
+  { name: "Happy", value: 45 },
+  { name: "Neutral", value: 25 },
+  { name: "Angry", value: 15 },
+  { name: "Sad", value: 15 },
+];
+
+const initialFeedback = [
+  { text: "The new product update is fantastic! The UI feels smoother.", emotion: "Happy" },
+  { text: "Delivery was okay, but packaging could improve.", emotion: "Neutral" },
+  { text: "Received a defective item and no response from support.", emotion: "Angry" },
+];
+
+// Utility: Get most common emotion from feedback array
+function getMostCommonEmotion(feedback) {
+  if (!feedback.length) return "";
+  const counts = feedback.reduce((acc, { emotion }) => {
+    acc[emotion] = (acc[emotion] || 0) + 1;
+    return acc;
+  }, {});
+  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+}
+
+// Utility: Get average sentiment from sentiment data
+function getAverageSentiment(data) {
+  if (!data.length) return 0;
+  const sum = data.reduce((acc, item) => acc + item.sentiment, 0);
+  return Math.round(sum / data.length);
+}
+
+// SUBCOMPONENTS
+
+function StatCard({ title, value, textColor = "text-gray-900" }) {
+  return (
+    <Card className="shadow-md">
+      <CardContent>
+        <h2 className="text-sm text-gray-500">{title}</h2>
+        <p className={`text-3xl font-semibold mt-2 ${textColor}`}>{value}</p>
+      </CardContent>
+    </Card>
+  );
+}
+StatCard.propTypes = {
+  title: PropTypes.string.isRequired,
+  value: PropTypes.node.isRequired,
+  textColor: PropTypes.string,
+};
+
+function FeedbackItem({ text, emotion }) {
+  const colorMap = {
+    Happy: "bg-green-50 border-[#108981]",
+    Neutral: "bg-yellow-50 border-[#F59E0B]",
+    Angry: "bg-red-50 border-[#EF4444]",
+    Sad: "bg-blue-50 border-[#2563EB]",
+  };
+  return (
+    <blockquote className={`p-3 rounded-md border-l-4 ${colorMap[emotion] || "bg-gray-50 border-gray-300"}`}>
+      <span className="italic">"{text}"</span> – <span className="font-medium">{emotion}</span>
+    </blockquote>
+  );
+}
+FeedbackItem.propTypes = {
+  text: PropTypes.string.isRequired,
+  emotion: PropTypes.string.isRequired,
+};
+
+// MAIN COMPONENT
+
+export default function FeedbackIQPrototype() {
+  const [feedback, setFeedback] = useState(initialFeedback);
+  const [search, setSearch] = useState("");
+  const [newFeedback, setNewFeedback] = useState({ text: "", emotion: "Happy" });
+
+  // Filtered feedback for search
+  const filteredFeedback = feedback.filter(
+    item =>
+      item.text.toLowerCase().includes(search.toLowerCase()) ||
+      item.emotion.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // Handler for adding new feedback
+  const handleAddFeedback = () => {
+    if (newFeedback.text.trim()) {
+      setFeedback([...feedback, { ...newFeedback }]);
+      setNewFeedback({ text: "", emotion: "Happy" });
+    }
+  };
+
+  // Handler for report generation (stub)
+  const handleReport = () => {
+    alert("Report has been generated! (implement actual export/download functionality)");
+  };
+
+  return (
+    <div className="bg-[#F8FAFC] min-h-screen p-6 text-gray-900">
+      {/* Header */}
+      <header className="flex justify-between items-center mb-6 border-b pb-3">
+        <h1 className="text-2xl font-bold text-[#2563EB]">FeedbackIQ Dashboard</h1>
+        <Button className="bg-[#108981] hover:bg-[#0f766e]" onClick={handleReport} aria-label="Generate Report">
+          Generate Report
+        </Button>
+      </header>
+
+      {/* Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <StatCard title="Total Reviews Analyzed" value={feedback.length} />
+        <StatCard
+          title="Average Sentiment Score"
+          value={`${getAverageSentiment(initialSentimentData)}%`}
+          textColor="text-[#108981]"
+        />
+        <StatCard
+          title="Most Common Emotion"
+          value={getMostCommonEmotion(feedback)}
+          textColor="text-[#2563EB]"
+        />
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <Card className="shadow-lg">
+          <CardContent>
+            <h3 className="font-semibold mb-3">Sentiment Trend Over Time</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={initialSentimentData}>
+                <Tooltip />
+                <Line type="monotone" dataKey="sentiment" stroke="#2563EB" strokeWidth={3} />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        <Card className="shadow-lg">
+          <CardContent>
+            <h3 className="font-semibold mb-3">Emotion Distribution</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={initialEmotionData}
+                  dataKey="value"
+                  nameKey="name"
+                  outerRadius={100}
+                  label
+                >
+                  {initialEmotionData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filter/Search Bar & Add Feedback */}
+      <div className="flex flex-col md:flex-row gap-4 items-center mb-4">
+        <Input
+          type="text"
+          placeholder="Search feedback & emotion"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          aria-label="Search feedback"
+          className="max-w-xs"
+        />
+        <Input
+          type="text"
+          placeholder="Add feedback..."
+          value={newFeedback.text}
+          onChange={e => setNewFeedback({ ...newFeedback, text: e.target.value })}
+          aria-label="Add new feedback"
+          className="max-w-xs"
+          onKeyDown={e => {
+            if (e.key === 'Enter') handleAddFeedback();
+          }}
+        />
+        <select
+          value={newFeedback.emotion}
+          onChange={e => setNewFeedback({ ...newFeedback, emotion: e.target.value })}
+          aria-label="Select emotion"
+          className="p-2 rounded border"
+        >
+          <option>Happy</option>
+          <option>Neutral</option>
+          <option>Angry</option>
+          <option>Sad</option>
+        </select>
+        <Button className="bg-[#2563EB]" onClick={handleAddFeedback} aria-label="Submit feedback">
+          Add
+        </Button>
+      </div>
+
+      {/* Recent Customer Feedback */}
+      <Card className="shadow-md">
+        <CardContent>
+          <h3 className="font-semibold mb-3">Recent Customer Feedback</h3>
+          <div className="space-y-3">
+            {filteredFeedback.length === 0 ? (
+              <p className="text-gray-400">No feedback found.</p>
+            ) : (
+              filteredFeedback.map((item, idx) => (
+                <FeedbackItem key={idx} {...item} />
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
